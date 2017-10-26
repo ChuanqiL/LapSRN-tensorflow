@@ -1,9 +1,6 @@
 #! /usr/bin/python
 # -*- coding: utf8 -*-
 
-
-
-
 import tensorflow as tf
 import os
 import sys
@@ -26,15 +23,19 @@ def exit_tf(sess=None):
         print('linux: %s' % text)
         os.system('nvidia-smi')
         os.system('fuser 6006/tcp -k')  # kill tensorboard 6006
-        os.system("nvidia-smi | grep python |awk '{print $3}'|xargs kill") # kill all nvidia-smi python process
+        os.system("nvidia-smi | grep python |awk '{print $3}'|xargs kill"
+                  )  # kill all nvidia-smi python process
     elif _platform == "darwin":
         print('OS X: %s' % text)
-        os.system("lsof -i tcp:6006 | grep -v PID | awk '{print $2}' | xargs kill") # kill tensorboard 6006
+        os.system(
+            "lsof -i tcp:6006 | grep -v PID | awk '{print $2}' | xargs kill"
+        )  # kill tensorboard 6006
     elif _platform == "win32":
         print('Windows: %s' % text)
     else:
         print(_platform)
     exit()
+
 
 def clear_all(printable=True):
     """Clears all the placeholder variables of keep prob,
@@ -58,6 +59,7 @@ def clear_all(printable=True):
 
         del globals()[var]
 
+
 # def clear_all2(vars, printable=True):
 #     """
 #     The :function:`clear_all()` Clears all the placeholder variables of keep prob,
@@ -78,6 +80,7 @@ def clear_all(printable=True):
 #
 #         del var
 
+
 def set_gpu_fraction(sess=None, gpu_fraction=0.3):
     """Set the GPU memory fraction for the application.
 
@@ -94,11 +97,8 @@ def set_gpu_fraction(sess=None, gpu_fraction=0.3):
     """
     print("  tensorlayer: GPU MEM Fraction %f" % gpu_fraction)
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=gpu_fraction)
-    sess = tf.Session(config = tf.ConfigProto(gpu_options = gpu_options))
+    sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
     return sess
-
-
-
 
 
 def disable_print():
@@ -115,6 +115,7 @@ def disable_print():
     # sys.stdout = os.devnull   # this one kill the process
     sys.stdout = None
     sys.stderr = os.devnull
+
 
 def enable_print():
     """Enable console output, ``suppress_stdout`` is recommended.
@@ -147,8 +148,9 @@ def enable_print():
 #         sys.stderr = sys.__stderr__
 #         return isinstance(value, TypeError)
 
-
 from contextlib import contextmanager
+
+
 @contextmanager
 def suppress_stdout():
     """Temporarily disable console output.
@@ -173,7 +175,6 @@ def suppress_stdout():
             sys.stdout = old_stdout
 
 
-
 def get_site_packages_directory():
     """Print and return the site-packages directory.
 
@@ -189,7 +190,6 @@ def get_site_packages_directory():
     except:
         print("  tl.ops : Cannot find package dir from virtual environment")
         return False
-
 
 
 def empty_trash():
@@ -210,10 +210,12 @@ def empty_trash():
         except:
             pass
         try:
-            os.system("rd /s c:\recycler")  #  Windows XP, Vista, or Server 2003
+            os.system(
+                "rd /s c:\recycler")  #  Windows XP, Vista, or Server 2003
         except:
             pass
     else:
         print(_platform)
+
 
 #
