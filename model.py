@@ -205,7 +205,7 @@ def lrelu(x):
     return tf.maximum(x * 0.2, x)
 
 
-def LapSRNSingleLevel(net_image, net_feature, reuse=False):
+def LapSRNSingleLevel(net_image, net_feature, reuse=False, binary=False):
     with tf.variable_scope("Model_level", reuse=reuse):
         tl.layers.set_name_reuse(reuse)
 
@@ -218,7 +218,8 @@ def LapSRNSingleLevel(net_image, net_feature, reuse=False):
                 shape=[3, 3, 64, 64],
                 strides=[1, 1, 1, 1],
                 name='conv_D%s' % (d),
-                W_init=tf.contrib.layers.xavier_initializer())
+                W_init=tf.contrib.layers.xavier_initializer(),
+                binary=binary)
             # recursive_scope.reuse_variables()
             # for r in range(1,config.model.recursive_depth):
             #     # recursive block
@@ -236,7 +237,8 @@ def LapSRNSingleLevel(net_image, net_feature, reuse=False):
             shape=[3, 3, 64, 256],
             strides=[1, 1, 1, 1],
             name='upconv_feature',
-            W_init=tf.contrib.layers.xavier_initializer())
+            W_init=tf.contrib.layers.xavier_initializer(),
+            binary=binary)
         net_feature = SubpixelConv2d(
             net_feature, scale=2, n_out_channel=64, name='subpixel_feature')
 
@@ -246,7 +248,8 @@ def LapSRNSingleLevel(net_image, net_feature, reuse=False):
             shape=[3, 3, 64, 3],
             strides=[1, 1, 1, 1],
             name='grad',
-            W_init=tf.contrib.layers.xavier_initializer())
+            W_init=tf.contrib.layers.xavier_initializer(),
+            binary=binary)
         net_image = Conv2dLayer(
             net_image,
             shape=[3, 3, 3, 12],
@@ -263,7 +266,7 @@ def LapSRNSingleLevel(net_image, net_feature, reuse=False):
     return net_image, net_feature, gradient_level
 
 
-def LapSRN(inputs, is_train=False, reuse=False):
+def LapSRN(inputs, is_train=False, reuse=False, binary=False):
     n_level = int(np.log2(config.model.scale))
     assert n_level >= 1
 
@@ -286,10 +289,10 @@ def LapSRN(inputs, is_train=False, reuse=False):
         # net_image, net_feature, net_gradient = LapSRNSingleLevel(net_image, net_feature, reuse=True)
 
         net_image1, net_feature1, net_gradient1 = LapSRNSingleLevel(
-            net_image, net_feature, reuse=reuse)
-        net_image2, net_feature2, net_gradient2 = LapSRNSingleLevel(
-            net_image1, net_feature1, reuse=True)
+            net_image, net_feature, reuse=reuse, binary=binary)
 
+        net_image2, net_feature2, net_gradient2 = LapSRNSingleLevel(
+            net_image1, net_feature1, reuse=True, binary=binary)
         # For 8x, we just add another layer
 
-    return net_image2, net_gradient2, net_image1, net_gradient1
+    return net_image2, net_gradient2, net_image1, net_gradient1     # both 2x and 4x features

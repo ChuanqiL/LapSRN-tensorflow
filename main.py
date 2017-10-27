@@ -88,7 +88,7 @@ def prepare_nn_data(hr_img_list, lr_img_list, idx_img=None):
     return input_batch, output_batch
 
 
-def train():
+def train(binary=False):
     save_dir = "%s/%s_train" % (config.model.result_path,
                                 tl.global_flag['mode'])
     checkpoint_dir = "%s" % (config.model.checkpoint_path)
@@ -112,12 +112,12 @@ def train():
         align_corners=False)
 
     net_image2, net_grad2, net_image1, net_grad1 = LapSRN(
-        t_image, is_train=True, reuse=False)
+        t_image, is_train=True, reuse=False, binary=binary)
     net_image2.print_params(False)
 
     ## test inference
     net_image_test, net_grad_test, _, _ = LapSRN(
-        t_image, is_train=False, reuse=True)
+        t_image, is_train=False, reuse=True, binary=binary)
 
     ###========================== DEFINE TRAIN OPS ==========================###
     mse_loss2 = tl.cost.mean_squared_error(
@@ -145,10 +145,16 @@ def train():
     sess = tf.Session(config=tf.ConfigProto(
         allow_soft_placement=True, log_device_placement=False))
     tl.layers.initialize_global_variables(sess)
-    tl.files.load_and_assign_npz(
-        sess=sess,
-        name=checkpoint_dir + '/params_{}.npz'.format(tl.global_flag['mode']),
-        network=net_image2)
+    if binary:
+        tl.files.load_and_assign_npz(
+            sess=sess,
+            name=checkpoint_dir + '/params_lapsrn_b.npz',
+            network=net_image2)
+    else:
+        tl.files.load_and_assign_npz(
+            sess=sess,
+            name=checkpoint_dir + '/params_lapsrn.npz',
+            network=net_image2)
 
     ###========================== PRE-LOAD DATA ===========================###
     train_hr_list, train_lr_list, valid_hr_list, valid_lr_list = load_file_list(
@@ -200,11 +206,18 @@ def train():
 
         ## save model and evaluation on sample set
         if (epoch != 0) and (epoch % 1 == 0):
-            tl.files.save_npz(
-                net_image2.all_params,
-                name=checkpoint_dir +
-                '/params_{}.npz'.format(tl.global_flag['mode']),
-                sess=sess)
+            if binary:
+                tl.files.save_npz(
+                    net_image2.all_params,
+                    name=checkpoint_dir +
+                    '/params_lapsrn_b.npz',
+                    sess=sess)
+            else:
+                tl.files.save_npz(
+                    net_image2.all_params,
+                    name=checkpoint_dir +
+                    '/params_lapsrn.npz',
+                    sess=sess)
             sample_out, sample_grad_out = sess.run(
                 [net_image_test.outputs, net_grad_test.outputs], {
                     t_image: sample_input_imgs
@@ -217,30 +230,39 @@ def train():
                 save_dir + '/train_grad_predict_%d.png' % epoch)
 
 
-def test(file):
+def test(file, binary=False, zoom=4):
     try:
         img = get_imgs_fn(file)
     except IOError:
         print('cannot open %s' % (file))
     else:
         checkpoint_dir = config.model.checkpoint_path
-        save_dir = "%s/%s" % (config.model.result_path, tl.global_flag['mode'])
+        save_dir = config.model.result_path + "/lapsrnx{}".format(zoom)
         input_image = normalize_imgs_fn(img)
 
         size = input_image.shape
         print('Input size: %s,%s,%s' % (size[0], size[1], size[2]))
         t_image = tf.placeholder(
             'float32', [None, size[0], size[1], size[2]], name='input_image')
-        net_g, _, _, _ = LapSRN(t_image, is_train=False, reuse=False)
+        if zoom==2:
+            _, _, net_g, _ = LapSRN(t_image, is_train=False, reuse=False, binary=binary)
+        else:
+            net_g, _, _, _ = LapSRN(t_image, is_train=False, reuse=False, binary=binary)
 
         ###========================== RESTORE G =============================###
         sess = tf.Session(config=tf.ConfigProto(
             allow_soft_placement=True, log_device_placement=False))
         tl.layers.initialize_global_variables(sess)
-        tl.files.load_and_assign_npz(
-            sess=sess,
-            name=checkpoint_dir + '/params_train.npz',
-            network=net_g)
+        if binary:
+            tl.files.load_and_assign_npz(
+                sess=sess,
+                name=checkpoint_dir + '/params_lapsrn_b.npz',
+                network=net_image2)
+        else:
+            tl.files.load_and_assign_npz(
+                sess=sess,
+                name=checkpoint_dir + '/params_lapsrn.npz',
+                network=net_image2)
 
         ###======================= TEST =============================###
         start_time = time.time()
@@ -249,8 +271,8 @@ def test(file):
 
         tl.files.exists_or_mkdir(save_dir)
         tl.vis.save_image(
-            truncate_imgs_fn(out[0, :, :, :]), save_dir + '/test_out.png')
-        tl.vis.save_image(input_image, save_dir + '/test_input.png')
+            truncate_imgs_fn(out[0, :, :, :]), save_dir + '/test_lapsrnx{}.png'.format(zoom))
+        #tl.vis.save_image(input_image, save_dir + '/test_input.png')
 
 
 if __name__ == '__main__':
@@ -263,15 +285,25 @@ if __name__ == '__main__':
         default='train',
         help='select mode')
     parser.add_argument('-f', '--file', help='input file')
-
+    parser.add_argument(
+        '--binary', 
+        type=bool, 
+        default=False, 
+        help='enable binary network')
+    parser.add_argument(
+        '--zoom', 
+        type=int, 
+        default=4, 
+        help='super-resolution scale')
+    
     args = parser.parse_args()
 
     tl.global_flag['mode'] = args.mode
     if tl.global_flag['mode'] == 'train':
-        train()
+        train(binary=args.binary)
     elif tl.global_flag['mode'] == 'test':
         if (args.file is None):
             raise Exception("Please enter input file name for test mode")
-        test(args.file)
+        test(args.file, binary=args.binary, zoom=args.zoom)
     else:
         raise Exception("Unknow --mode")
