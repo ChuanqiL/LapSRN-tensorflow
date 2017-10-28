@@ -100,8 +100,14 @@ class BinaryConv2dLayer(Layer):
                         initializer=tf.constant_initializer(value=0.0),
                         **W_init_args)
                     # binarization of W to W_b
-                    W_b = tf.sign(W) * (
-                        tf.reduce_sum(W) / tf.reduce_sum(tf.sign(W)))
+                    W_b = tf.get_variable(
+                        name='W_conv2d_binary',
+                        shape=shape,
+                        initializer=W_init,
+                        **W_init_args)
+                    # binarization of W to W_b
+                    alpha = tf.reduce_sum(W) / tf.reduce_sum(tf.sign(W))
+                    tf.assign(W_b, alpha * tf.sign(W))
                     self.outputs = act(
                         tf.nn.conv2d(
                             self.inputs,
@@ -114,9 +120,7 @@ class BinaryConv2dLayer(Layer):
                     # directly infer from W_b
                     W_b = tf.get_variable(
                         name='W_conv2d_binary',
-                        shape=shape,
-                        initializer=tf.constant_initializer(value=0.0),
-                        **W_init_args)
+                        shape=shape)
                     self.outputs = act(
                         tf.nn.conv2d(
                             self.inputs,
