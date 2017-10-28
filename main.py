@@ -120,10 +120,8 @@ def train(binary=False):
         t_image, is_train=False, reuse=True, binary=binary)
 
     ###========================== DEFINE TRAIN OPS ==========================###
-    mse_loss2 = tl.cost.mean_squared_error(
-        net_image2.outputs, t_target_image, is_mean=True)
-    mse_loss1 = tl.cost.mean_squared_error(
-        net_image1.outputs, t_target_image_down, is_mean=True)
+    mse_loss2 = compute_charbonnier_loss(net_image2.outputs, t_target_image, is_mean=True)
+    mse_loss1 = compute_charbonnier_loss(net_image1.outputs, t_target_image_down, is_mean=True)
     mse_loss = mse_loss1 + mse_loss2 * 4
     g_vars = get_variables_with_name_in_binary_training('LapSRN', True, True)
 
