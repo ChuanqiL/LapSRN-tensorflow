@@ -70,8 +70,6 @@ def prepare_nn_data(hr_img_list, lr_img_list, idx_img=None):
     input_image = get_imgs_fn(lr_img_list[i])
     output_image = get_imgs_fn(hr_img_list[i])
     scale = int(output_image.shape[0] / input_image.shape[0])
-    print(output_image.shape[0])
-    print(input_image.shape[0])
     assert scale == config.model.scale
 
     out_patch_size = patch_size * scale
@@ -172,8 +170,6 @@ def train(binary=False):
 
     ###========================== Intermediate validation ===============================###
     sample_ind = 53
-    print(valid_hr_list[sample_ind])
-    print(valid_lr_list[sample_ind])
     sample_input_imgs, sample_output_imgs = prepare_nn_data(
         valid_hr_list, valid_lr_list, sample_ind)
     tl.vis.save_images(
