@@ -172,6 +172,8 @@ def train(binary=False):
 
     ###========================== Intermediate validation ===============================###
     sample_ind = 53
+    print(valid_hr_list[sample_ind])
+    print(valid_lr_list[sample_ind])
     sample_input_imgs, sample_output_imgs = prepare_nn_data(
         valid_hr_list, valid_lr_list, sample_ind)
     tl.vis.save_images(
