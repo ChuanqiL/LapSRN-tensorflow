@@ -17,6 +17,16 @@ patch_size = config.train.in_patch_size
 ni = int(np.sqrt(config.train.batch_size))
 
 
+def compute_charbonnier_loss(tensor1, tensor2, is_mean=True):
+    epsilon = 1e-6
+    if is_mean:
+        loss = tf.reduce_mean(tf.reduce_mean(tf.sqrt(tf.square(tf.subtract(tensor1,tensor2))+epsilon), [1, 2, 3]))
+    else:
+        loss = tf.reduce_mean(tf.reduce_sum(tf.sqrt(tf.square(tf.subtract(tensor1,tensor2))+epsilon), [1, 2, 3]))
+
+    return loss
+
+
 def load_file_list():
     train_hr_file_list = []
     train_lr_file_list = []
