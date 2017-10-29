@@ -70,6 +70,8 @@ def prepare_nn_data(hr_img_list, lr_img_list, idx_img=None):
     input_image = get_imgs_fn(lr_img_list[i])
     output_image = get_imgs_fn(hr_img_list[i])
     scale = int(output_image.shape[0] / input_image.shape[0])
+    print(output_image.shape[0])
+    print(input_image.shape[0])
     assert scale == config.model.scale
 
     out_patch_size = patch_size * scale
