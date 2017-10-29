@@ -61,7 +61,7 @@ def load_file_list():
     ]:
         valid_lr_file_list.append("%s%s" % (directory, filename))
 
-    return train_hr_file_list, train_lr_file_list, valid_hr_file_list, valid_lr_file_list
+    return sorted(train_hr_file_list), sorted(train_lr_file_list), sorted(valid_hr_file_list), sorted(valid_lr_file_list)
 
 
 def prepare_nn_data(hr_img_list, lr_img_list, idx_img=None):
