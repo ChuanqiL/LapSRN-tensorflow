@@ -267,7 +267,7 @@ def LapSRNSingleLevel(net_image, net_feature, reuse=False, is_train=False, binar
     return net_image, net_feature, gradient_level
 
 
-def LapSRN(inputs, is_train=False, reuse=False, is_train=False, binary=False):
+def LapSRN(inputs, reuse=False, is_train=False, binary=False):
     n_level = int(np.log2(config.model.scale))
     assert n_level >= 1
 
