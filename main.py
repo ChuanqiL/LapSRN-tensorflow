@@ -265,12 +265,12 @@ def test(file, binary=False, zoom=4):
             tl.files.load_and_assign_npz(
                 sess=sess,
                 name=checkpoint_dir + '/params_lapsrn_b.npz',
-                network=net_image2)
+                network=net_g)
         else:
             tl.files.load_and_assign_npz(
                 sess=sess,
                 name=checkpoint_dir + '/params_lapsrn.npz',
-                network=net_image2)
+                network=net_g)
 
         ###======================= TEST =============================###
         start_time = time.time()
