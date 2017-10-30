@@ -122,12 +122,12 @@ def train(binary=False):
         align_corners=False)
 
     net_image2, net_grad2, net_image1, net_grad1 = LapSRN(
-        t_image, is_train=True, reuse=False, binary=binary)
+        t_image, reuse=False, is_train=True, binary=binary)
     net_image2.print_params(False)
 
     ## test inference
     net_image_test, net_grad_test, _, _ = LapSRN(
-        t_image, is_train=False, reuse=True, binary=binary)
+        t_image, reuse=True, is_train=False, binary=binary)
 
     ###========================== DEFINE TRAIN OPS ==========================###
     mse_loss2 = compute_charbonnier_loss(net_image2.outputs, t_target_image, is_mean=True)
