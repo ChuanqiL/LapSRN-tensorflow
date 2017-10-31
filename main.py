@@ -319,7 +319,7 @@ def test(read_directory, binary=False, zoom=4):
         print("LR size: %s /  generated HR size: %s" %
               (size, out.shape
                ))  # LR size: (339, 510, 3) /  gen HR size: (1, 1356, 2040, 3)
-        test_hr_gen_output = truncate_imgs_fn(out[0])
+        test_hr_gen_output = out[0] / np.amax(np.absolute(out[0]))
         test_hr_gen_output = (test_hr_gen_output + 1) * 127.5
         print(test_hr_gen_output[test_hr_gen_output < 0])
 
