@@ -320,6 +320,7 @@ def test(read_directory, binary=False, zoom=4):
               (size, out.shape
                ))  # LR size: (339, 510, 3) /  gen HR size: (1, 1356, 2040, 3)
         test_hr_gen_output = (truncate_imgs_fn(out[0]) + 1) * 127.5
+        print(test_hr_gen_output[test_hr_gen_output < 0])
 
         cropSaveCalculate(test_hr_groundtruth, test_hr_gen_output, save_dir,
                           test_hr_img_file, model_label, zoom, f)
