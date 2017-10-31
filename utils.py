@@ -13,7 +13,6 @@ from skimage.measure import compare_ssim as ssim
 from config import config, log_config
 
 
-
 def get_imgs_fn(file_name):
     return scipy.misc.imread(file_name, mode='RGB')
 
@@ -28,7 +27,13 @@ def normalize_imgs_fn(x):
     return x
 
 
+def rescale_imgs_fn(x):
+	x = (2 * x - (np.amax(x) + np.amin(x))) / (np.amax(x) - np.amin(x))
+	return
+
+
 def truncate_imgs_fn(x):
+	''' deprecate '''
     np.where(x >= -1., x, -1)
     np.where(x <= 1., x, 1)
     return x
