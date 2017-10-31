@@ -280,6 +280,7 @@ def test(read_directory, binary=False, zoom=4):
         ###========================== DEFINE MODEL ============================###
         test_lr_img_input = (
             test_lr_img_input / 127.5) - 1  # rescale to ［－1, 1]
+        print(test_lr_img_input[test_lr_img_input > 255])
         size = test_lr_img_input.shape
         print('Input size: %s,%s,%s' % (size[0], size[1], size[2]))
         t_image = tf.placeholder(
@@ -320,7 +321,7 @@ def test(read_directory, binary=False, zoom=4):
               (size, out.shape
                ))  # LR size: (339, 510, 3) /  gen HR size: (1, 1356, 2040, 3)
         test_hr_gen_output = (truncate_imgs_fn(out[0]) + 1) * 127.5
-        print(test_hr_gen_output[test_hr_gen_output < 0])
+        #print(test_hr_gen_output[test_hr_gen_output < 0])
 
         cropSaveCalculate(test_hr_groundtruth, test_hr_gen_output, save_dir,
                           test_hr_img_file, model_label, zoom, f)
