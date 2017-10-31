@@ -29,7 +29,7 @@ def normalize_imgs_fn(x):
 
 def rescale_imgs_fn(x):
 	x = (2 * x - (np.amax(x) + np.amin(x))) / (np.amax(x) - np.amin(x))
-	return
+	return x
 
 
 def truncate_imgs_fn(x):
