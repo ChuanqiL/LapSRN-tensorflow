@@ -1,5 +1,6 @@
 #! /usr/bin/python
 # -*- coding: utf8 -*-
+import os
 import numpy as np
 import tensorflow as tf
 import tensorlayer as tl
@@ -197,6 +198,92 @@ def process_grads(grads_and_vars, binary=False):
                 new_grads_and_vars.append(grad_and_var)
         return new_grads_and_vars
     return grads_and_vars
+
+
+def assign_params_with_binary(sess, params, network):
+    """Assign the given parameters to the TensorLayer network.
+
+    Parameters
+    ----------
+    sess : TensorFlow Session. Automatically run when sess is not None.
+    params : a list
+        A list of parameters in order.
+    network : a :class:`Layer` class
+        The network to be assigned
+
+    Returns
+    --------
+    ops : list
+        A list of tf ops in order that assign params. Support sess.run(ops) manually.
+
+    Examples
+    --------
+    >>> Save your network as follow:
+    >>> tl.files.save_npz(network.all_params, name='model_test.npz')
+    >>> network.print_params()
+    ...
+    ... Next time, load and assign your network as follow:
+    >>> tl.layers.initialize_global_variables(sess)
+    >>> load_params = tl.files.load_npz(name='model_test.npz')
+    >>> tl.files.assign_params(sess, load_params, network)
+    >>> network.print_params()
+
+    References
+    ----------
+    - `Assign value to a TensorFlow variable <http://stackoverflow.com/questions/34220532/how-to-assign-value-to-a-tensorflow-variable>`_
+    """
+    ops = []
+    compensate = 0
+    for idx, param in enumerate(params):
+        # print(network.all_params[idx-compensate].name)
+        # print(network.all_params[idx-compensate])
+        # print(param.shape)
+        if network.all_params[idx-compensate].shape != param.shape:
+            print('Find mismatch, we compensate')
+            compensate += 1
+            continue
+        try:
+            ops.append(network.all_params[idx-compensate].assign(param))
+        # except AttributeError:
+        except ValueError:
+            continue
+    if sess is not None:
+        sess.run(ops)
+    return ops
+
+
+def load_and_assign_npz_with_binary(sess=None, name=None, network=None, binary=False):
+    """Load model from npz and assign to a network.
+
+    Parameters
+    -------------
+    sess : TensorFlow Session
+    name : string
+        Model path.
+    network : a :class:`Layer` class
+        The network to be assigned
+
+    Returns
+    --------
+    Returns False if faild to model is not exist.
+
+    Examples
+    ---------
+    >>> tl.files.load_and_assign_npz(sess=sess, name='net.npz', network=net)
+    """
+    assert network is not None
+    assert sess is not None
+    if not os.path.exists(name):
+        print("[!] Load {} failed!".format(name))
+        return False
+    else:
+        params = tl.files.load_npz(name=name)
+        if binary:
+            assign_params_with_binary(sess, params, network)
+        else:
+            tl.files.assign_params(sess, params, network)
+        print("[*] Load {} SUCCESS!".format(name))
+        return network
 
 
 def lrelu(x):

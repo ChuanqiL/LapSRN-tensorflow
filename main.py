@@ -238,49 +238,95 @@ def train(binary=False):
                 save_dir + '/train_grad_predict_%d.png' % epoch)
 
 
-def test(file, binary=False, zoom=4):
-    try:
-        img = get_imgs_fn(file)
-    except IOError:
-        print('cannot open %s' % (file))
-    else:
-        checkpoint_dir = config.model.checkpoint_path
-        save_dir = config.model.result_path + "/lapsrnx{}".format(zoom)
-        input_image = normalize_imgs_fn(img)
+def test(read_directory, binary=False, zoom=4):
+    ###====================== PRE-LOAD DATA ===========================###
+    # Read filename list from file_directory+'HR/'
+    hr_directory = read_directory + 'HR/'
+    lr_directory = read_directory + 'LRx{}/'.format(zoom)
+    test_hr_img_list = sorted(
+        tl.files.load_file_list(
+            path=hr_directory, regx='.*.jpg', printable=False))
+    test_hr_img_list.extend(
+        sorted(
+            tl.files.load_file_list(
+                path=hr_directory, regx='.*.png', printable=False)))
 
-        size = input_image.shape
+    ## create folders to save result images
+    model_label = "lapsrnx{}".format(zoom)
+    if binary:
+        model_label += '_b'
+    save_dir = read_directory + model_label + '/'
+    tl.files.exists_or_mkdir(save_dir)
+    checkpoint_dir = config.model.checkpoint_path
+
+    f = open(read_directory + 'metrics_' + model_label + '.txt', 'w+')
+
+    run_times = 0
+    for test_hr_img_file in test_hr_img_list:
+        test_hr_groundtruth, test_lr_img_file = readAndSnap(
+            hr_directory, test_hr_img_file, zoom)
+
+        test_lr_img = scipy.misc.imread(
+            lr_directory + test_lr_img_file, mode='RGB').astype(np.float32)
+
+        ###========================== Padding the LR image =============================###
+        test_lr_img_input = np.lib.pad(
+            test_lr_img, ((config.TEST.padnumber, config.TEST.padnumber),
+                          (config.TEST.padnumber, config.TEST.padnumber), (0,
+                                                                           0)),
+            config.TEST.mode,
+            reflect_type=config.TEST.type)
+
+        ###========================== DEFINE MODEL ============================###
+        test_lr_img_input = (
+            test_lr_img_input / 127.5) - 1  # rescale to ［－1, 1]
+        size = test_lr_img_input.shape
         print('Input size: %s,%s,%s' % (size[0], size[1], size[2]))
         t_image = tf.placeholder(
             'float32', [None, size[0], size[1], size[2]], name='input_image')
-        if zoom==2:
-            _, _, net_g, _ = LapSRN(t_image, is_train=False, reuse=False, binary=binary)
-        else:
-            net_g, _, _, _ = LapSRN(t_image, is_train=False, reuse=False, binary=binary)
+        
+        if run_times == 0:
+            if zoom==2:
+                _, _, net_g, _ = LapSRN(t_image, is_train=False, reuse=False, binary=binary)
+            else:
+                net_g, _, _, _ = LapSRN(t_image, is_train=False, reuse=False, binary=binary)
 
-        ###========================== RESTORE G =============================###
-        sess = tf.Session(config=tf.ConfigProto(
-            allow_soft_placement=True, log_device_placement=False))
-        tl.layers.initialize_global_variables(sess)
-        if binary:
-            tl.files.load_and_assign_npz(
-                sess=sess,
-                name=checkpoint_dir + '/params_lapsrn_b.npz',
-                network=net_g)
+            ###========================== RESTORE G =============================###
+            sess = tf.Session(config=tf.ConfigProto(
+                allow_soft_placement=True, log_device_placement=False))
+            tl.layers.initialize_global_variables(sess)
+            if binary:
+                load_and_assign_npz_with_binary(
+                    sess=sess,
+                    name=checkpoint_dir + '/params_lapsrn_b.npz',
+                    network=net_g,
+                    binary=binary)
+            else:
+                tl.files.load_and_assign_npz(
+                    sess=sess,
+                    name=checkpoint_dir + '/params_lapsrn.npz',
+                    network=net_g)
         else:
-            tl.files.load_and_assign_npz(
-                sess=sess,
-                name=checkpoint_dir + '/params_lapsrn.npz',
-                network=net_g)
+            if zoom==2:
+                _, _, net_g, _ = LapSRN(t_image, is_train=False, reuse=True, binary=binary)
+            else:
+                net_g, _, _, _ = LapSRN(t_image, is_train=False, reuse=True, binary=binary)
 
-        ###======================= TEST =============================###
+        ###================ EVALUATE on Model and generate image ================###
         start_time = time.time()
-        out = sess.run(net_g.outputs, {t_image: [input_image]})
+        out = sess.run(net_g.outputs, {t_image: [test_lr_img_input]})
         print("took: %4.4fs" % (time.time() - start_time))
+        print("LR size: %s /  generated HR size: %s" %
+              (size, out.shape
+               ))  # LR size: (339, 510, 3) /  gen HR size: (1, 1356, 2040, 3)
+        test_hr_gen_output = (out[0] + 1) * 127.5
 
-        tl.files.exists_or_mkdir(save_dir)
-        tl.vis.save_image(
-            truncate_imgs_fn(out[0, :, :, :]), save_dir + '/test_lapsrnx{}.png'.format(zoom))
-        #tl.vis.save_image(input_image, save_dir + '/test_input.png')
+        cropSaveCalculate(test_hr_groundtruth, test_hr_gen_output, save_dir,
+                          test_hr_img_file, model_label, zoom, f)
+        run_times += 1
+
+    f.close()
+    return
 
 
 if __name__ == '__main__':
@@ -292,7 +338,11 @@ if __name__ == '__main__':
         choices=['train', 'test'],
         default='train',
         help='select mode')
-    parser.add_argument('-f', '--file', help='input file')
+    parser.add_argument(
+        '--test_dir',
+        type=str,
+        default='BSD100/',
+        help='BSD100/, Set5/, Set14/')
     parser.add_argument(
         '--binary', 
         type=bool, 
@@ -310,8 +360,6 @@ if __name__ == '__main__':
     if tl.global_flag['mode'] == 'train':
         train(binary=args.binary)
     elif tl.global_flag['mode'] == 'test':
-        if (args.file is None):
-            raise Exception("Please enter input file name for test mode")
-        test(args.file, binary=args.binary, zoom=args.zoom)
+        test('../srgan_binary/'+args.test_dir, binary=args.binary, zoom=args.zoom)
     else:
         raise Exception("Unknow --mode")

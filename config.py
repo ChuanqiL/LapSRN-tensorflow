@@ -33,6 +33,12 @@ config.train.beta1 = 0.90
 ## initialize G
 config.train.n_epoch = 300
 
+## for run models generating images
+config.TEST = edict()
+config.TEST.mode = 'reflect'
+config.TEST.type = 'odd'
+config.TEST.padnumber = 2
+
 
 def log_config(filename, cfg):
     with open(filename, 'w') as f:
