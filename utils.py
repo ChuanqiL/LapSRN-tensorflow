@@ -34,8 +34,8 @@ def rescale_imgs_fn(x):
 
 def truncate_imgs_fn(x):
 	''' deprecate '''
-	np.where(x >= -1., x, -1)
-	np.where(x <= 1., x, 1)
+	x = np.where(x >= -1., x, -1)
+	x = np.where(x <= 1., x, 1)
 	return x
 
 #--------------------------------------------------------------------------------
