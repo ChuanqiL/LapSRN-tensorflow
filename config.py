@@ -37,7 +37,7 @@ config.train.n_epoch = 300
 config.TEST = edict()
 config.TEST.mode = 'reflect'
 config.TEST.type = 'odd'
-config.TEST.padnumber = 1
+config.TEST.padnumber = 2
 
 
 def log_config(filename, cfg):
