@@ -100,8 +100,8 @@ def cropSaveCalculate(test_hr_groundtruth, test_hr_gen_output, save_dir,
 
     ###======================= Crop and save generated =======================###
     crop_num = config.TEST.padnumber * zoom
-    test_hr_gen_output_crop = test_hr_gen_output[crop_num:-crop_num, crop_num:
-                                                 -crop_num, :]
+    test_hr_gen_output_crop = test_hr_gen_output[crop_num*zoom:-crop_num*zoom, crop_num*zoom:
+                                                 -crop_num*zoom, :]
     print("[*] save images")
     scipy.misc.imsave(save_dir + test_hr_gen_file,
                       test_hr_gen_output_crop.astype(np.uint8))
