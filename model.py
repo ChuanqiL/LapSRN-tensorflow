@@ -101,7 +101,8 @@ class BinaryConv2dLayer(Layer):
                         initializer=W_init,
                         **W_init_args)
                     # binarization of W to W_b
-                    alpha = tf.reduce_sum(W) / tf.reduce_sum(tf.sign(W))
+                    # alpha = tf.reduce_sum(W) / tf.reduce_sum(tf.sign(W))
+                    alpha = tf.reduce_mean(tf.abs(W))
                     tf.assign(W_b, alpha * tf.sign(W))
                     self.outputs = act(
                         tf.nn.conv2d(
@@ -113,9 +114,7 @@ class BinaryConv2dLayer(Layer):
                             data_format=data_format))
                 else:
                     # directly infer from W_b
-                    W_b = tf.get_variable(
-                        name='W_conv2d_binary',
-                        shape=shape)
+                    W_b = tf.get_variable(name='W_conv2d_binary', shape=shape)
                     self.outputs = act(
                         tf.nn.conv2d(
                             self.inputs,
@@ -238,12 +237,12 @@ def assign_params_with_binary(sess, params, network):
         # print(network.all_params[idx-compensate].name)
         # print(network.all_params[idx-compensate])
         # print(param.shape)
-        if network.all_params[idx-compensate].shape != param.shape:
+        if network.all_params[idx - compensate].shape != param.shape:
             print('Find mismatch, we compensate')
             compensate += 1
             continue
         try:
-            ops.append(network.all_params[idx-compensate].assign(param))
+            ops.append(network.all_params[idx - compensate].assign(param))
         # except AttributeError:
         except ValueError:
             continue
@@ -252,7 +251,10 @@ def assign_params_with_binary(sess, params, network):
     return ops
 
 
-def load_and_assign_npz_with_binary(sess=None, name=None, network=None, binary=False):
+def load_and_assign_npz_with_binary(sess=None,
+                                    name=None,
+                                    network=None,
+                                    binary=False):
     """Load model from npz and assign to a network.
 
     Parameters
@@ -290,7 +292,11 @@ def lrelu(x):
     return tf.maximum(x * 0.2, x)
 
 
-def LapSRNSingleLevel(net_image, net_feature, reuse=False, is_train=False, binary=False):
+def LapSRNSingleLevel(net_image,
+                      net_feature,
+                      reuse=False,
+                      is_train=False,
+                      binary=False):
     with tf.variable_scope("Model_level", reuse=reuse):
         tl.layers.set_name_reuse(reuse)
 
@@ -377,10 +383,64 @@ def LapSRN(inputs, reuse=False, is_train=False, binary=False):
         # net_image, net_feature, net_gradient = LapSRNSingleLevel(net_image, net_feature, reuse=True)
 
         net_image1, net_feature1, net_gradient1 = LapSRNSingleLevel(
-            net_image, net_feature, reuse=reuse, is_train=is_train, binary=binary)
+            net_image,
+            net_feature,
+            reuse=reuse,
+            is_train=is_train,
+            binary=binary)
 
         net_image2, net_feature2, net_gradient2 = LapSRNSingleLevel(
-            net_image1, net_feature1, reuse=True, is_train=is_train, binary=binary)
+            net_image1,
+            net_feature1,
+            reuse=True,
+            is_train=is_train,
+            binary=binary)
         # For 8x, we just add another layer
 
-    return net_image2, net_gradient2, net_image1, net_gradient1     # both 2x and 4x features
+    return net_image2, net_gradient2, net_image1, net_gradient1  # both 2x and 4x features
+
+
+def LapSRN8(inputs, reuse=False, is_train=False, binary=False):
+    n_level = int(np.log2(config.model.scale))
+    assert n_level >= 1
+
+    with tf.variable_scope("LapSRN8", reuse=reuse) as vs:
+        tl.layers.set_name_reuse(reuse)
+
+        shapes = tf.shape(inputs)
+        inputs_level = InputLayer(inputs, name='input_level')
+
+        net_feature = Conv2dLayer(
+            inputs_level,
+            shape=[3, 3, 3, 64],
+            strides=[1, 1, 1, 1],
+            W_init=tf.contrib.layers.xavier_initializer(),
+            name='init_conv')
+        net_image = inputs_level
+
+        # net_image, net_feature, net_gradient = LapSRNSingleLevel(net_image, net_feature, reuse=reuse)
+        # for level in range(1,n_level):
+        # net_image, net_feature, net_gradient = LapSRNSingleLevel(net_image, net_feature, reuse=True)
+
+        net_image1, net_feature1, net_gradient1 = LapSRNSingleLevel(
+            net_image,
+            net_feature,
+            reuse=reuse,
+            is_train=is_train,
+            binary=binary)
+
+        net_image2, net_feature2, net_gradient2 = LapSRNSingleLevel(
+            net_image1,
+            net_feature1,
+            reuse=True,
+            is_train=is_train,
+            binary=binary)
+        # For 8x, we just add another layer
+        net_image3, net_feature3, net_gradient3 = LapSRNSingleLevel(
+            net_image2,
+            net_feature2,
+            reuse=True,
+            is_train=is_train,
+            binary=binary)
+
+    return net_image3, net_gradient3, net_image2, net_gradient2, net_image1, net_gradient1  # both 2x and 4x and 8x features
