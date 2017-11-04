@@ -378,7 +378,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--binary', type=bool, default=False, help='enable binary network')
     parser.add_argument(
-        '--zoom', type=int, default=4, help='super-resolution scale')
+        '--zoom', type=int, default=8, help='super-resolution scale')
 
     args = parser.parse_args()
 
