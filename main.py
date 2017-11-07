@@ -126,13 +126,18 @@ def train(binary=False):
     net_image2.print_params(False)
 
     ## test inference
-    net_image_test, net_grad_test, _, _ = LapSRN(
+    net_image2_test, net_grad2_test, net_image1_test, net_grad1_test = LapSRN(
         t_image, reuse=True, is_train=False, binary=binary)
 
     ###========================== DEFINE TRAIN OPS ==========================###
     mse_loss2 = compute_charbonnier_loss(net_image2.outputs, t_target_image, is_mean=True)
     mse_loss1 = compute_charbonnier_loss(net_image1.outputs, t_target_image_down, is_mean=True)
     mse_loss = mse_loss1 + mse_loss2 * 4
+    
+    mse_loss2_test = compute_charbonnier_loss(net_image2_test.outputs, t_target_image, is_mean=True)
+    mse_loss1_test = compute_charbonnier_loss(net_image1_test.outputs, t_target_image_down, is_mean=True)
+    mse_loss_test = mse_loss1_test + mse_loss2_test * 4
+    
     g_vars = get_variables_with_name_in_binary_training('LapSRN', True, True)
 
     with tf.variable_scope('learning_rate'):
@@ -194,11 +199,11 @@ def train(binary=False):
 
         epoch_time = time.time()
         total_mse_loss, n_iter = 0, 0
+        total_mse_loss_test, n_test_iter = 0, 0
 
         ## load image data
         idx_list = np.random.permutation(len(train_hr_list))
         for idx_file in range(len(idx_list)):
-            step_time = time.time()
             batch_input_imgs, batch_output_imgs = prepare_nn_data(
                 train_hr_list, train_lr_list, idx_file)
             errM, _ = sess.run([mse_loss, g_optim], {
@@ -208,9 +213,21 @@ def train(binary=False):
             total_mse_loss += errM
             n_iter += 1
 
-        print("[*] Epoch: [%2d/%2d] time: %4.4fs, mse: %.8f" %
+        ## loss on valid data
+        test_idx_list = np.random.permutation(len(valid_hr_list))
+        for test_idx_file in range(len(test_idx_list)):
+            batch_input_imgs, batch_output_imgs = prepare_nn_data(
+                valid_hr_list, valid_lr_list, test_idx_file)
+            errTest = sess.run(mse_loss_test, {
+                t_image: batch_input_imgs,
+                t_target_image: batch_output_imgs
+            })
+            total_mse_loss_test += errTest
+            n_test_iter += 1
+
+        print("[*] Epoch: [%2d/%2d] time: %4.4fs, train mse: %.6f, valid mse: %.6f" %
               (epoch, config.train.n_epoch, time.time() - epoch_time,
-               total_mse_loss / n_iter))
+               total_mse_loss / n_iter, total_mse_loss_test / n_test_iter))
 
         ## save model and evaluation on sample set
         if (epoch != 0) and (epoch % 1 == 0):
@@ -227,7 +244,7 @@ def train(binary=False):
                     '/params_lapsrn.npz',
                     sess=sess)
             sample_out, sample_grad_out = sess.run(
-                [net_image_test.outputs, net_grad_test.outputs], {
+                [net_image2_test.outputs, net_grad2_test.outputs], {
                     t_image: sample_input_imgs
                 })  #; print('gen sub-image:', out.shape, out.min(), out.max())
             tl.vis.save_images(
