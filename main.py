@@ -163,19 +163,19 @@ def train(binary=False):
             sess=sess,
             name=checkpoint_dir + '/params_lapsrn_b.npz',
             network=net_image2)
-        tl.files.load_and_assign_npz(
-            sess=sess,
-            name=checkpoint_dir + '/params_lapsrn_b.npz',
-            network=net_image2_test)
+        # tl.files.load_and_assign_npz(
+        #     sess=sess,
+        #     name=checkpoint_dir + '/params_lapsrn_b.npz',
+        #     network=net_image2_test)
     else:
         tl.files.load_and_assign_npz(
             sess=sess,
             name=checkpoint_dir + '/params_lapsrn.npz',
             network=net_image2)
-        tl.files.load_and_assign_npz(
-            sess=sess,
-            name=checkpoint_dir + '/params_lapsrn.npz',
-            network=net_image2_test)
+        # tl.files.load_and_assign_npz(
+        #     sess=sess,
+        #     name=checkpoint_dir + '/params_lapsrn.npz',
+        #     network=net_image2_test)
 
     ###========================== PRE-LOAD DATA ===========================###
     train_hr_list, train_lr_list, valid_hr_list, valid_lr_list = load_file_list(
