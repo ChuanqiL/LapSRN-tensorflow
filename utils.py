@@ -39,42 +39,17 @@ def truncate_imgs_fn(x):
 	return x
 
 #--------------------------------------------------------------------------------
-def rgb2ycbcr(im):
-    xform = np.array([[.299, .587, .114], [-.1687, -.3313, .5],
-                      [.5, -.4187, -.0813]])
-    ycbcr = im.dot(xform.T)
-    ycbcr[:, :, [1, 2]] += 128
-    return np.float32(ycbcr)
-
-
-def ycbcr2rgb(im):
-    xform = np.array([[1, 0, 1.402], [1, -0.34414, -.71414], [1, 1.772, 0]])
-    rgb = im.astype(np.float)
-    rgb[:, :, [1, 2]] -= 128
-    return np.uint8(rgb.dot(xform.T))
-
-
-def psnr(img1, img2):
-    mse = np.mean((img1 - img2)**2)
-    if mse == 0:
-        return 100
-    PIXEL_MAX = 255.0
-    return 20 * math.log10(PIXEL_MAX / math.sqrt(mse))
-
 
 def readAndSnap(hr_directory, test_hr_img_file, zoom):
     ''' Highly modularized read, and snap
     '''
     ###=================== read image from filename test_hr_img_file ================###
     test_hr_img = scipy.misc.imread(
-        hr_directory + test_hr_img_file, mode='RGB').astype(np.float32)
+        hr_directory + test_hr_img_file, mode='RGB')
 
     ###== Snap the image to a shape that's compatible with the generator (2x, 4x) ==###
-    s = zoom * 2
-    by, bx = test_hr_img.shape[0] % s, test_hr_img.shape[1] % s
-    test_hr_groundtruth = test_hr_img[
-        by - by // 2:test_hr_img.shape[0] - by // 2, bx - bx // 2:
-        test_hr_img.shape[1] - bx // 2, :]
+    by, bx = test_hr_img.shape[0] % zoom, test_hr_img.shape[1] % zoom
+    test_hr_groundtruth = test_hr_img[:test_hr_img.shape[0] - by, :test_hr_img.shape[1] - bx, :]
 
     ###=================== read corresponding LR image ================###
     if 'png' in test_hr_img_file:
@@ -101,19 +76,9 @@ def cropSaveCalculate(test_hr_groundtruth, test_hr_gen_output, save_dir,
     ###======================= Crop and save generated =======================###
     crop_num = config.TEST.padnumber * zoom
     test_hr_gen_output_crop = test_hr_gen_output[crop_num:-crop_num, crop_num:
-                                                 -crop_num, :]
+                                                 -crop_num, :].astype(np.uint8)
     print("[*] save images")
     scipy.misc.imsave(save_dir + test_hr_gen_file,
-                      test_hr_gen_output_crop.astype(np.uint8))
+                      test_hr_gen_output_crop)
 
-    ###======================= Calculate Metrics =============================###
-    psnr_bicubic = psnr(
-        rgb2ycbcr(test_hr_groundtruth)[:, :, 0],
-        rgb2ycbcr(test_hr_gen_output_crop)[:, :, 0])
-    ssim_bicubic = ssim(
-        rgb2ycbcr(test_hr_groundtruth)[:, :, 0],
-        rgb2ycbcr(test_hr_gen_output_crop)[:, :, 0])
-    f.write(test_hr_img_file + '\t')
-    f.write(format(psnr_bicubic, '.4f') + ',')
-    f.write(format(ssim_bicubic, '.4f') + '\n')
     return

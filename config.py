@@ -29,9 +29,9 @@ config.train.batch_size_each_folder = 30
 config.train.log_write = False
 
 ## Adam
-config.train.lr_init = 1.e-5
-config.train.lr_decay = 0.5
-config.train.decay_iter = 30
+config.train.lr_init = 6.e-6
+config.train.lr_decay = 0.8
+config.train.decay_iter = 15
 config.train.beta1 = 0.90
 
 ## initialize G
