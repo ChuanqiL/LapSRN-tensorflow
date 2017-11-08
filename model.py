@@ -171,7 +171,7 @@ def get_variables_with_name_in_binary_training(name,
 
     d_vars = []
     for var in t_vars:
-        if name in var.name and 'real' not in var.name:
+        if name in var.name:    # and 'real' not in var.name
             d_vars.append(var)
     if printable:
         for idx, v in enumerate(d_vars):
@@ -193,6 +193,8 @@ def process_grads(grads_and_vars, binary=False):
                 real_naming = binary_naming.replace('binary', 'real')
                 real_var = tf.get_variable(name=real_naming)
                 new_grads_and_vars.append((grad_and_var[0], real_var))
+            elif 'real' in grad_and_var[1].name:
+                continue
             else:
                 new_grads_and_vars.append(grad_and_var)
         return new_grads_and_vars
