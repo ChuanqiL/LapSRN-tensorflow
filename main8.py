@@ -176,7 +176,7 @@ def train(binary=False):
     clipped_g_loss_gvs = [(tf.clip_by_value(grad, -5.0, 5.0)
                            if grad is not None else None, var)
                           for grad, var in g_loss_gvs]
-    g_loss_grads_and_vars = process_grads(clipped_g_loss_gvs)
+    g_loss_grads_and_vars = process_grads(clipped_g_loss_gvs, binary=True)
     g_optim = tf.train.AdamOptimizer(
         lr_v, beta1=config.train.beta1).apply_gradients(g_loss_grads_and_vars)
 
