@@ -191,8 +191,14 @@ def process_grads(grads_and_vars, binary=False):
             if 'binary' in grad_and_var[1].name:
                 binary_naming = grad_and_var[1].name
                 real_naming = binary_naming.replace('binary', 'real')
-                real_var = tf.get_variable(name=real_naming)
-                new_grads_and_vars.append((grad_and_var[0], real_var))
+                real_var = None
+                # search
+                for search in grads_and_vars:
+                    if search[1].name == real_naming:
+                        real_var = search[1]
+                        break
+                if not real_var:
+                    new_grads_and_vars.append((grad_and_var[0], real_var))
             elif 'real' in grad_and_var[1].name:
                 continue
             else:
