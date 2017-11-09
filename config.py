@@ -30,8 +30,8 @@ config.train.log_write = False
 
 ## Adam
 config.train.lr_init = 1e-5
-config.train.lr_decay = 0.9
-config.train.decay_iter = 15
+config.train.lr_decay = 0.95
+config.train.decay_iter = 10
 config.train.beta1 = 0.90
 
 ## initialize G
