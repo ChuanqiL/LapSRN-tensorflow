@@ -129,6 +129,16 @@ def train(binary=False):
     net_image2_test, net_grad2_test, net_image1_test, _ = LapSRN(
         t_image, reuse=True, is_train=False, binary=binary)
 
+    with tf.variable_scope("LapSRN", reuse=True):
+        real_filters = tl.layers.get_variables_with_name('W_conv2d_real', True, False)
+        binary_filters = tl.layers.get_variables_with_name('W_conv2d_binary', True, False)
+        # Assign op
+        assign_ops = []
+        for i in range(len(real_filters)):
+            alpha = tf.reduce_mean(tf.abs(real_filters[i]))
+            assign_op = tf.assign(binary_filters[i], alpha * tf.sign(real_filters[i]))
+            assign_ops.append(assign_op)
+
     ###========================== DEFINE TRAIN OPS ==========================###
     mse_loss2 = compute_charbonnier_loss(net_image2.outputs, t_target_image, is_mean=True)
     mse_loss1 = compute_charbonnier_loss(net_image1.outputs, t_target_image_down, is_mean=True)
@@ -163,19 +173,11 @@ def train(binary=False):
             sess=sess,
             name=checkpoint_dir + '/params_lapsrn_b.npz',
             network=net_image2)
-        # tl.files.load_and_assign_npz(
-        #     sess=sess,
-        #     name=checkpoint_dir + '/params_lapsrn_b.npz',
-        #     network=net_image2_test)
     else:
         tl.files.load_and_assign_npz(
             sess=sess,
             name=checkpoint_dir + '/params_lapsrn.npz',
             network=net_image2)
-        # tl.files.load_and_assign_npz(
-        #     sess=sess,
-        #     name=checkpoint_dir + '/params_lapsrn.npz',
-        #     network=net_image2_test)
 
     ###========================== PRE-LOAD DATA ===========================###
     train_hr_list, train_lr_list, valid_hr_list, valid_lr_list = load_file_list(
@@ -214,6 +216,11 @@ def train(binary=False):
         for idx_file in range(len(idx_list)):
             batch_input_imgs, batch_output_imgs = prepare_nn_data(
                 train_hr_list, train_lr_list, idx_file)
+            # Assign binary weight
+            real_before, binary_before = sess.run([real_filters, binary_filters])
+            for assign_op in assign_ops:
+                sess.run(assign_op)
+                
             errM, _ = sess.run([mse_loss, g_optim], {
                 t_image: batch_input_imgs,
                 t_target_image: batch_output_imgs
@@ -237,6 +244,14 @@ def train(binary=False):
               (epoch, config.train.n_epoch, time.time() - epoch_time,
                total_mse_loss / n_iter, total_mse_loss_test / n_test_iter))
 
+        if binary:
+            hs = open(checkpoint_dir + '/params_lapsrn_b.txt'.format(zoom),"a+")
+        else:
+            hs = open(checkpoint_dir + '/params_lapsrn.txt'.format(zoom),"a+")
+        hs.write("{%.6f}, ".format(total_mse_loss / n_iter))
+        hs.write("{%.6f}\n".format(total_mse_test_loss / n_test_iter))
+        hs.close()
+        
         ## save model and evaluation on sample set
         if (epoch != 0) and (epoch % 1 == 0):
             if binary:
