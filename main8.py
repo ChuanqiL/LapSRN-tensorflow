@@ -276,7 +276,7 @@ def train(binary=False):
         else:
             hs = open(checkpoint_dir + '/params_lapsrn8.txt'.format(zoom),"a+")
         hs.write("{}, ".format(total_mse_loss / n_iter, '.6f'))
-        hs.write("{}\n".format(total_mse_test_loss / n_test_iter, '.6f'))
+        hs.write("{}\n".format(total_mse_loss_test / n_test_iter, '.6f'))
         hs.close()
         
         ## save model and evaluation on sample set
