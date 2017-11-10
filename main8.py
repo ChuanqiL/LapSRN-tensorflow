@@ -35,16 +35,34 @@ def compute_charbonnier_loss(tensor1, tensor2, is_mean=True):
 
 def load_file_list():
     train_hr_file_list = []
+    train_lrx2_file_list = []
+    train_lrx4_file_list = []
     train_lr_file_list = []
     valid_hr_file_list = []
+    valid_lrx2_file_list = []
+    valid_lrx4_file_list = []
     valid_lr_file_list = []
-
+    
     directory = config.train.hr_folder_path
     for filename in [
             y for y in os.listdir(directory)
             if os.path.isfile(os.path.join(directory, y))
     ]:
         train_hr_file_list.append("%s%s" % (directory, filename))
+
+    directory = config.train.lrx2_folder_path
+    for filename in [
+            y for y in os.listdir(directory)
+            if os.path.isfile(os.path.join(directory, y))
+    ]:
+        train_lrx2_file_list.append("%s%s" % (directory, filename))
+
+    directory = config.train.lrx4_folder_path
+    for filename in [
+            y for y in os.listdir(directory)
+            if os.path.isfile(os.path.join(directory, y))
+    ]:
+        train_lrx4_file_list.append("%s%s" % (directory, filename))
 
     directory = config.train.lrx8_folder_path
     for filename in [
@@ -60,6 +78,20 @@ def load_file_list():
     ]:
         valid_hr_file_list.append("%s%s" % (directory, filename))
 
+    directory = config.valid.lrx2_folder_path
+    for filename in [
+            y for y in os.listdir(directory)
+            if os.path.isfile(os.path.join(directory, y))
+    ]:
+        valid_lrx2_file_list.append("%s%s" % (directory, filename))
+
+    directory = config.valid.lrx4_folder_path
+    for filename in [
+            y for y in os.listdir(directory)
+            if os.path.isfile(os.path.join(directory, y))
+    ]:
+        valid_lrx4_file_list.append("%s%s" % (directory, filename))
+
     directory = config.valid.lrx8_folder_path
     for filename in [
             y for y in os.listdir(directory)
@@ -67,20 +99,27 @@ def load_file_list():
     ]:
         valid_lr_file_list.append("%s%s" % (directory, filename))
 
-    return sorted(train_hr_file_list), sorted(train_lr_file_list), sorted(
-        valid_hr_file_list), sorted(valid_lr_file_list)
+    return sorted(train_hr_file_list), sorted(train_lrx2_file_list), sorted(train_lrx4_file_list), \
+        sorted(train_lr_file_list), sorted(valid_hr_file_list), sorted(valid_lrx2_file_list), \
+        sorted(valid_lrx4_file_list), sorted(valid_lr_file_list)
 
 
-def prepare_nn_data(hr_img_list, lr_img_list, idx_img=None):
+def prepare_nn_data(hr_img_list, lrx2_img_list, lrx4_img_list, lr_img_list, idx_img=None):
     i = np.random.randint(len(hr_img_list)) if (idx_img is None) else idx_img
 
     input_image = get_imgs_fn(lr_img_list[i])
+    middle1_image = get_imgs_fn(lrx4_img_list[i])
+    middle2_image = get_imgs_fn(lrx2_img_list[i])
     output_image = get_imgs_fn(hr_img_list[i])
     scale = int(output_image.shape[0] / input_image.shape[0])
     assert scale == config.model.scale8
 
+    mid1_patch_size = patch_size * 2
+    mid2_patch_size = patch_size * 4
     out_patch_size = patch_size * scale
     input_batch = np.empty([batch_size, patch_size, patch_size, 3])
+    middle1_batch = np.empty([batch_size, mid1_patch_size, mid1_patch_size, 3])
+    middle2_batch = np.empty([batch_size, mid2_patch_size, mid2_patch_size, 3])
     output_batch = np.empty([batch_size, out_patch_size, out_patch_size, 3])
 
     for idx in range(batch_size):
@@ -94,6 +133,22 @@ def prepare_nn_data(hr_img_list, lr_img_list, idx_img=None):
         input_cropped = np.expand_dims(input_cropped, axis=0)
         input_batch[idx] = input_cropped
 
+        mid1_row_ind = in_row_ind * 2
+        mid1_col_ind = in_col_ind * 2
+        middle1_cropped = output_image[mid1_row_ind:mid1_row_ind + mid1_patch_size,
+                                      mid1_col_ind:mid1_col_ind + mid1_patch_size]
+        middle1_cropped = normalize_imgs_fn(middle1_cropped)
+        middle1_cropped = np.expand_dims(middle1_cropped, axis=0)
+        middle1_batch[idx] = middle1_cropped
+
+        mid2_row_ind = in_row_ind * 4
+        mid2_col_ind = in_col_ind * 4
+        middle2_cropped = output_image[mid2_row_ind:mid2_row_ind + mid2_patch_size,
+                                      mid2_col_ind:mid2_col_ind + mid2_patch_size]
+        middle2_cropped = normalize_imgs_fn(middle2_cropped)
+        middle2_cropped = np.expand_dims(middle2_cropped, axis=0)
+        middle2_batch[idx] = middle2_cropped
+
         out_row_ind = in_row_ind * scale
         out_col_ind = in_col_ind * scale
         output_cropped = output_image[out_row_ind:out_row_ind + out_patch_size,
@@ -102,7 +157,7 @@ def prepare_nn_data(hr_img_list, lr_img_list, idx_img=None):
         output_cropped = np.expand_dims(output_cropped, axis=0)
         output_batch[idx] = output_cropped
 
-    return input_batch, output_batch
+    return input_batch, middle1_batch, middle2_batch, output_batch
 
 
 def train(binary=False):
@@ -118,26 +173,22 @@ def train(binary=False):
         name='t_image_input')
     t_target_image = tf.placeholder(
         'float32', [
-            batch_size, patch_size * config.model.scale8,
+            batch_size, patch_size * config.model.scale,
             patch_size * config.model.scale8, 3
         ],
         name='t_target_image')
-    t_target_image_down = tf.image.resize_images(
-        t_target_image,
-        size=[
-            patch_size * config.model.scale8 / 2,
-            patch_size * config.model.scale8 / 2
+    t_target_image_down = tf.placeholder(
+        'float32', [
+            batch_size, patch_size * config.model.scale,
+            patch_size * config.model.scale8, 3
         ],
-        method=0,
-        align_corners=False)
-    t_target_image_down_more = tf.image.resize_images(
-        t_target_image,
-        size=[
-            patch_size * config.model.scale8 / 4,
-            patch_size * config.model.scale8 / 4
+        name='t_target_image_down')
+    t_target_image_down_more = tf.placeholder(
+        'float32', [
+            batch_size, patch_size * 2,
+            patch_size * 2, 3
         ],
-        method=0,
-        align_corners=False)
+        name='t_target_image_down_more')
 
     net_image3, net_grad3, net_image2, net_grad2, net_image1, net_grad1 = LapSRN8(
         t_image, reuse=False, is_train=True, binary=binary)
@@ -206,13 +257,13 @@ def train(binary=False):
             network=net_image3)
 
     ###========================== PRE-LOAD DATA ===========================###
-    train_hr_list, train_lr_list, valid_hr_list, valid_lr_list = load_file_list(
+    train_hr_list, train_lrx2_list, train_lrx4_list, train_lr_list, valid_hr_list, valid_lrx2_list, valid_lrx4_list, valid_lr_list = load_file_list(
     )
 
     ###========================== Intermediate validation ===============================###
     sample_ind = 53
-    sample_input_imgs, sample_output_imgs = prepare_nn_data(
-        valid_hr_list, valid_lr_list, sample_ind)
+    sample_input_imgs, _, _, sample_output_imgs = prepare_nn_data(
+        valid_hr_list, valid_lrx2_list, valid_lrx4_list, valid_lr_list, sample_ind)
     tl.vis.save_images(
         truncate_imgs_fn(sample_input_imgs), [ni, ni],
         save_dir + '/train_sample_input.png')
@@ -241,8 +292,8 @@ def train(binary=False):
         idx_list = np.random.permutation(len(train_hr_list))
         for idx_file in range(len(idx_list)):
             step_time = time.time()
-            batch_input_imgs, batch_output_imgs = prepare_nn_data(
-                train_hr_list, train_lr_list, idx_file)
+            batch_input_imgs, batch_middle1_imgs, batch_middle2_imgs, batch_output_imgs = prepare_nn_data(
+                train_hr_list, train_lrx2_list, train_lrx4_list, train_lr_list, idx_file)
             # Assign binary weight
             real_before, binary_before = sess.run([real_filters, binary_filters])
             for assign_op in assign_ops:
@@ -250,7 +301,9 @@ def train(binary=False):
 
             errM, _ = sess.run([mse_loss, g_optim], {
                 t_image: batch_input_imgs,
-                t_target_image: batch_output_imgs
+                t_target_image: batch_output_imgs,
+                t_target_image_down: batch_middle2_imgs,
+                t_target_image_down_more: batch_middle1_imgs
             })
             total_mse_loss += errM
             n_iter += 1
@@ -258,11 +311,13 @@ def train(binary=False):
         ## loss on valid data
         test_idx_list = np.random.permutation(len(valid_hr_list))
         for test_idx_file in range(len(test_idx_list)):
-            batch_input_imgs, batch_output_imgs = prepare_nn_data(
-                valid_hr_list, valid_lr_list, test_idx_file)
+            batch_input_imgs, batch_middle1_imgs, batch_middle2_imgs, batch_output_imgs = prepare_nn_data(
+                valid_hr_list, valid_lrx2_list, valid_lrx4_list, valid_lr_list, test_idx_file)
             errTest = sess.run(mse_loss_test, {
                 t_image: batch_input_imgs,
-                t_target_image: batch_output_imgs
+                t_target_image: batch_output_imgs,
+                t_target_image_down: batch_middle2_imgs,
+                t_target_image_down_more: batch_middle1_imgs
             })
             total_mse_loss_test += errTest
             n_test_iter += 1
