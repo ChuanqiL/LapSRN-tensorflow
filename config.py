@@ -24,8 +24,8 @@ config.train.lrx2_folder_path = 'data2017/DIV2K_train_LR_bicubic/X2/'
 config.train.lrx4_folder_path = 'data2017/DIV2K_train_LR_bicubic/X4/'
 config.train.lrx8_folder_path = 'data2017/DIV2K_train_LR_bicubic/X8/'
 
-config.train.batch_size = 8  # use large number if you have enough memory
-config.train.in_patch_size = 64
+config.train.batch_size = 4  # use large number if you have enough memory
+config.train.in_patch_size = 96
 config.train.out_patch_size = config.model.scale * config.train.in_patch_size
 config.train.batch_size_each_folder = 30
 config.train.log_write = False
