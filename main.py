@@ -109,7 +109,7 @@ def prepare_nn_data(hr_img_list, lrx2_img_list, lr_img_list, idx_img=None):
 
         mid_row_ind = in_row_ind * 2
         mid_col_ind = in_col_ind * 2
-        middle_cropped = output_image[mid_row_ind:mid_row_ind + mid_patch_size,
+        middle_cropped = middle_image[mid_row_ind:mid_row_ind + mid_patch_size,
                                       mid_col_ind:mid_col_ind + mid_patch_size]
         middle_cropped = normalize_imgs_fn(middle_cropped)
         middle_cropped = np.expand_dims(middle_cropped, axis=0)

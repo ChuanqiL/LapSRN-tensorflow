@@ -135,7 +135,7 @@ def prepare_nn_data(hr_img_list, lrx2_img_list, lrx4_img_list, lr_img_list, idx_
 
         mid1_row_ind = in_row_ind * 2
         mid1_col_ind = in_col_ind * 2
-        middle1_cropped = output_image[mid1_row_ind:mid1_row_ind + mid1_patch_size,
+        middle1_cropped = middle1_image[mid1_row_ind:mid1_row_ind + mid1_patch_size,
                                       mid1_col_ind:mid1_col_ind + mid1_patch_size]
         middle1_cropped = normalize_imgs_fn(middle1_cropped)
         middle1_cropped = np.expand_dims(middle1_cropped, axis=0)
@@ -143,7 +143,7 @@ def prepare_nn_data(hr_img_list, lrx2_img_list, lrx4_img_list, lr_img_list, idx_
 
         mid2_row_ind = in_row_ind * 4
         mid2_col_ind = in_col_ind * 4
-        middle2_cropped = output_image[mid2_row_ind:mid2_row_ind + mid2_patch_size,
+        middle2_cropped = middle2_image[mid2_row_ind:mid2_row_ind + mid2_patch_size,
                                       mid2_col_ind:mid2_col_ind + mid2_patch_size]
         middle2_cropped = normalize_imgs_fn(middle2_cropped)
         middle2_cropped = np.expand_dims(middle2_cropped, axis=0)
