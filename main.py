@@ -209,7 +209,7 @@ def train(binary=False):
             network=net_image2)
 
     ###========================== PRE-LOAD DATA ===========================###
-    train_hr_list, train_lrx2_list, train_lr_list, valid_hr_list, valid_lr_list, valid_lrx2_list = load_file_list(
+    train_hr_list, train_lrx2_list, train_lr_list, valid_hr_list, valid_lrx2_list, valid_lr_list = load_file_list(
     )
 
     ###========================== Intermediate validation ===============================###
