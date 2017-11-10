@@ -204,7 +204,8 @@ def train(binary=False):
         # Assign op
         assign_ops = []
         for i in range(len(real_filters)):
-            alpha = tf.reduce_mean(tf.abs(real_filters[i]))
+            # alpha = tf.reduce_mean(tf.abs(real_filters[i]))
+            alpha = tf.reduce_mean(tf.abs(real_filters[i]), axis=(0,1,2), keep_dims=True)
             assign_op = tf.assign(binary_filters[i], alpha * tf.sign(real_filters[i]))
             assign_ops.append(assign_op)
 
