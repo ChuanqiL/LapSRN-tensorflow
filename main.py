@@ -228,7 +228,7 @@ def train(binary=False):
     sess.run(tf.assign(lr_v, config.train.lr_init))
     print(" ** learning rate: %f" % config.train.lr_init)
 
-    min_mse_loss_test = -10000.00
+    min_mse_loss_test = 10000.00
     for epoch in range(config.train.n_epoch):
         ## update learning rate
         if epoch != 0 and (epoch % config.train.decay_iter == 0):
