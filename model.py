@@ -339,7 +339,7 @@ def LapSRNSingleLevel(net_image,
             name='upconv_feature',
             W_init=tf.contrib.layers.xavier_initializer(),
             is_train=is_train,
-            binary=binary)
+            binary=False)
         net_feature = SubpixelConv2d(
             net_feature, scale=2, n_out_channel=64, name='subpixel_feature')
 
@@ -351,7 +351,7 @@ def LapSRNSingleLevel(net_image,
             name='grad',
             W_init=tf.contrib.layers.xavier_initializer(),
             is_train=is_train,
-            binary=binary)
+            binary=False)
         net_image = Conv2dLayer(
             net_image,
             shape=[3, 3, 3, 12],
