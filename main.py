@@ -228,6 +228,7 @@ def train(binary=False):
     sess.run(tf.assign(lr_v, config.train.lr_init))
     print(" ** learning rate: %f" % config.train.lr_init)
 
+    min_mse_loss_test = -10000.00
     for epoch in range(config.train.n_epoch):
         ## update learning rate
         if epoch != 0 and (epoch % config.train.decay_iter == 0):
@@ -285,7 +286,7 @@ def train(binary=False):
         hs.close()
         
         ## save model and evaluation on sample set
-        if (epoch != 0) and (epoch % 1 == 0):
+        if (epoch != 0) and (epoch % 1 == 0) and (total_mse_loss_test < min_mse_loss_test):
             if binary:
                 tl.files.save_npz(
                     net_image2.all_params,
@@ -298,6 +299,7 @@ def train(binary=False):
                     name=checkpoint_dir +
                     '/params_lapsrn.npz',
                     sess=sess)
+            min_mse_loss_test = total_mse_loss_test
             sample_out, sample_grad_out = sess.run(
                 [net_image2_test.outputs, net_grad2_test.outputs], {
                     t_image: sample_input_imgs
