@@ -103,7 +103,6 @@ def prepare_nn_data(hr_img_list, lrx2_img_list, lr_img_list, idx_img=None):
         input_cropped, input_opt = augment_imgs_fn(
             input_image[in_row_ind:in_row_ind + patch_size, 
                         in_col_ind:in_col_ind + patch_size])
-        input_cropped = normalize_imgs_fn(input_cropped)
         input_cropped = np.expand_dims(input_cropped, axis=0)
         input_batch[idx] = input_cropped
 
@@ -112,7 +111,6 @@ def prepare_nn_data(hr_img_list, lrx2_img_list, lr_img_list, idx_img=None):
         middle_cropped, _ = augment_imgs_fn(
             middle_image[mid_row_ind:mid_row_ind + mid_patch_size,
                          mid_col_ind:mid_col_ind + mid_patch_size], option=input_opt)
-        middle_cropped = normalize_imgs_fn(middle_cropped)
         middle_cropped = np.expand_dims(middle_cropped, axis=0)
         middle_batch[idx] = middle_cropped
 
@@ -121,7 +119,6 @@ def prepare_nn_data(hr_img_list, lrx2_img_list, lr_img_list, idx_img=None):
         output_cropped, _ = augment_imgs_fn(
             output_image[out_row_ind:out_row_ind + out_patch_size,
                          out_col_ind:out_col_ind + out_patch_size], option=input_opt)
-        output_cropped = normalize_imgs_fn(output_cropped)
         output_cropped = np.expand_dims(output_cropped, axis=0)
         output_batch[idx] = output_cropped
 
