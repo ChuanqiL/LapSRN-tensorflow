@@ -100,25 +100,27 @@ def prepare_nn_data(hr_img_list, lrx2_img_list, lr_img_list, idx_img=None):
         in_row_ind = random.randint(0, input_image.shape[0] - patch_size)
         in_col_ind = random.randint(0, input_image.shape[1] - patch_size)
 
-        input_cropped = augment_imgs_fn(
-            input_image[in_row_ind:in_row_ind + patch_size, in_col_ind:
-                        in_col_ind + patch_size])
+        input_cropped, input_opt = augment_imgs_fn(
+            input_image[in_row_ind:in_row_ind + patch_size, 
+                        in_col_ind:in_col_ind + patch_size])
         input_cropped = normalize_imgs_fn(input_cropped)
         input_cropped = np.expand_dims(input_cropped, axis=0)
         input_batch[idx] = input_cropped
 
         mid_row_ind = in_row_ind * 2
         mid_col_ind = in_col_ind * 2
-        middle_cropped = middle_image[mid_row_ind:mid_row_ind + mid_patch_size,
-                                      mid_col_ind:mid_col_ind + mid_patch_size]
+        middle_cropped, _ = augment_imgs_fn(
+            middle_image[mid_row_ind:mid_row_ind + mid_patch_size,
+                         mid_col_ind:mid_col_ind + mid_patch_size], option=input_opt)
         middle_cropped = normalize_imgs_fn(middle_cropped)
         middle_cropped = np.expand_dims(middle_cropped, axis=0)
         middle_batch[idx] = middle_cropped
 
         out_row_ind = in_row_ind * scale
         out_col_ind = in_col_ind * scale
-        output_cropped = output_image[out_row_ind:out_row_ind + out_patch_size,
-                                      out_col_ind:out_col_ind + out_patch_size]
+        output_cropped, _ = augment_imgs_fn(
+            output_image[out_row_ind:out_row_ind + out_patch_size,
+                         out_col_ind:out_col_ind + out_patch_size], option=input_opt)
         output_cropped = normalize_imgs_fn(output_cropped)
         output_cropped = np.expand_dims(output_cropped, axis=0)
         output_batch[idx] = output_cropped
@@ -161,12 +163,13 @@ def train(binary=False):
     with tf.variable_scope("LapSRN", reuse=True):
         real_filters = tl.layers.get_variables_with_name('W_conv2d_real', True, False)
         binary_filters = tl.layers.get_variables_with_name('W_conv2d_binary', True, False)
+        # alpha = tl.layers.get_variables_with_name('alpha', True, False)
         # Assign op
         assign_ops = []
         for i in range(len(real_filters)):
-            # alpha = tf.reduce_mean(tf.abs(real_filters[i]))
-            alpha = tf.reduce_mean(tf.abs(real_filters[i]), axis=(0,1,2), keep_dims=True)
-            assign_op = tf.assign(binary_filters[i], alpha * tf.sign(real_filters[i]))
+            # alpha = tf.reduce_mean(tf.abs(real_filters[i]), axis=(0,1,2), keep_dims=True)
+            # assign_op = tf.assign(binary_filters[i], alpha * tf.sign(real_filters[i]))
+            assign_op = tf.assign(binary_filters[i], tf.sign(real_filters[i]))
             assign_ops.append(assign_op)
 
     ###========================== DEFINE TRAIN OPS ==========================###
@@ -187,12 +190,12 @@ def train(binary=False):
     g_loss_gvs = tf.train.AdamOptimizer(
         lr_v, beta1=config.train.beta1).compute_gradients(
             mse_loss, var_list=g_vars)
+    g_loss_grads_and_vars = process_grads(g_loss_gvs, binary=True)
     clipped_g_loss_gvs = [(tf.clip_by_value(grad, -5.0, 5.0)
                            if grad is not None else None, var)
-                          for grad, var in g_loss_gvs]
-    g_loss_grads_and_vars = process_grads(clipped_g_loss_gvs, binary=True)
+                          for grad, var in g_loss_grads_and_vars]
     g_optim = tf.train.AdamOptimizer(
-        lr_v, beta1=config.train.beta1).apply_gradients(g_loss_grads_and_vars)
+        lr_v, beta1=config.train.beta1).apply_gradients(clipped_g_loss_gvs)
 
     ###========================== RESTORE MODEL =============================###
     sess = tf.Session(config=tf.ConfigProto(
@@ -286,7 +289,10 @@ def train(binary=False):
         hs.close()
         
         ## save model and evaluation on sample set
-        if (epoch != 0) and (epoch % 1 == 0) and (total_mse_loss_test < min_mse_loss_test):
+        if total_mse_loss_test < min_mse_loss_test:
+            min_mse_loss_test = total_mse_loss_test
+            if epoch == 0:
+                continue
             if binary:
                 tl.files.save_npz(
                     net_image2.all_params,
@@ -299,7 +305,6 @@ def train(binary=False):
                     name=checkpoint_dir +
                     '/params_lapsrn.npz',
                     sess=sess)
-            min_mse_loss_test = total_mse_loss_test
             sample_out, sample_grad_out = sess.run(
                 [net_image2_test.outputs, net_grad2_test.outputs], {
                     t_image: sample_input_imgs

@@ -101,13 +101,17 @@ class BinaryConv2dLayer(Layer):
                         initializer=W_init,
                         **W_init_args)
                     # binarization of W to W_b
-                    # alpha = tf.reduce_sum(W) / tf.reduce_sum(tf.sign(W))
-                    alpha = tf.reduce_mean(tf.abs(W))
+                    alpha = tf.get_variable(
+                        name='alpha',
+                        shape=[1, 1, 1, shape[3]],
+                        initializer=tf.contrib.layers.xavier_initializer(),
+                        **W_init_args)
+                    # alpha = tf.reduce_mean(tf.abs(W))
                     tf.assign(W_b, alpha * tf.sign(W))
                     self.outputs = act(
                         tf.nn.conv2d(
                             self.inputs,
-                            W_b,
+                            alpha * W_b,
                             strides=strides,
                             padding=padding,
                             use_cudnn_on_gpu=use_cudnn_on_gpu,
@@ -115,10 +119,11 @@ class BinaryConv2dLayer(Layer):
                 else:
                     # directly infer from W_b
                     W_b = tf.get_variable(name='W_conv2d_binary', shape=shape)
+                    alpha = tf.get_variable(name='alpha', shape=[1, 1, 1, shape[3]])
                     self.outputs = act(
                         tf.nn.conv2d(
                             self.inputs,
-                            W_b,
+                            alpha * W_b,
                             strides=strides,
                             padding=padding,
                             use_cudnn_on_gpu=use_cudnn_on_gpu,
@@ -144,6 +149,7 @@ class BinaryConv2dLayer(Layer):
         self.all_layers.extend([self.outputs])
         if binary:
             self.all_params.extend([W_b])
+            self.all_params.extend([alpha])
             if is_train:
                 self.all_params.extend([W])
         else:
@@ -181,6 +187,38 @@ def get_variables_with_name_in_binary_training(name,
 
 
 def process_grads(grads_and_vars, binary=False):
+    """ Customized gradients processing function: apply the binary weights gradients to the original real weights
+    sandwiched by compute_gradients() and apply_gradients()
+    """
+    if binary:
+        # apply the binary weights gradients to the original real weights
+        new_grads_and_vars = []
+        for grad_and_var in grads_and_vars:
+            if 'binary' in grad_and_var[1].name:
+                binary_naming = grad_and_var[1].name
+                real_naming = binary_naming.replace('binary', 'real')
+                alpha_naming = binary_naming.replace('W_conv2d_binary', 'alpha')
+                real_var = None
+                alpha_var = None
+                # search
+                for search in grads_and_vars:
+                    if search[1].name == real_naming:
+                        real_var = search[1]
+                    if search[1].name == alpha_naming:
+                        alpha_var = search[1]
+                    if real_var and alpha_var:
+                        break
+                if not real_var:
+                    new_grads_and_vars.append((grad_and_var[0] / alpha_var, real_var))
+            elif 'real' in grad_and_var[1].name:
+                continue
+            else:
+                new_grads_and_vars.append(grad_and_var)
+        return new_grads_and_vars
+    return grads_and_vars
+
+
+def process_grads0(grads_and_vars, binary=False):
     """ Customized gradients processing function: apply the binary weights gradients to the original real weights
     sandwiched by compute_gradients() and apply_gradients()
     """
@@ -350,6 +388,7 @@ def LapSRNSingleLevel(net_image,
             strides=[1, 1, 1, 1],
             name='grad',
             W_init=tf.contrib.layers.xavier_initializer(),
+            act=lrelu,
             is_train=is_train,
             binary=False)
         net_image = Conv2dLayer(
