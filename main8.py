@@ -176,14 +176,14 @@ def train(binary=False):
         name='t_image_input')
     t_target_image = tf.placeholder(
         'float32', [
-            batch_size, patch_size * config.model.scale,
+            batch_size, patch_size * config.model.scale8,
             patch_size * config.model.scale8, 3
         ],
         name='t_target_image')
     t_target_image_down = tf.placeholder(
         'float32', [
             batch_size, patch_size * config.model.scale,
-            patch_size * config.model.scale8, 3
+            patch_size * config.model.scale, 3
         ],
         name='t_target_image_down')
     t_target_image_down_more = tf.placeholder(

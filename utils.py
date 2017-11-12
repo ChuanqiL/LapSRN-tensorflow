@@ -17,10 +17,6 @@ def get_imgs_fn(file_name):
     return scipy.misc.imread(file_name, mode='RGB')
 
 
-def augment_imgs_fn(x, add_noise=True):
-    return x + 0.1 * x.std() * np.random.random(x.shape)
-
-
 def normalize_imgs_fn(x):
     x = x * (2. / 255.) - 1.
     # x = x * (1./255.)
@@ -37,6 +33,47 @@ def truncate_imgs_fn(x):
 	x = np.where(x >= -1., x, -1)
 	x = np.where(x <= 1., x, 1)
 	return x
+
+
+def add_noise_fn(x, add_noise=True):
+    return x + 0.1 * x.std() * np.random.random(x.shape)
+
+
+def add_rotation_fn(x, option=None):
+    opt = option
+    if opt is None:
+   	 opt = np.random.randint(5)
+
+    assert (opt >= 0 and opt <= 4)
+
+    if opt is 0:
+   	 return np.rot90(x), opt
+    elif opt is 1:
+   	 return np.rot90(np.rot90(x)), opt
+    elif opt is 2:
+   	 return np.rot90(np.rot90(np.rot90(x))), opt
+    elif opt is 3:
+   	 return np.flipud(x), opt
+    elif opt is 4:
+   	 return np.fliplr(x), opt
+
+
+def augment_imgs_fn(x, option=None):
+    return add_rotation_fn(normalize_imgs_fn(add_noise_fn(x, True)),option)
+
+
+def pad_imgs_fn(x, base=16):
+    h,w,c  = x.shape
+    h_pad  = base - h % base
+    h_pad1 = h_pad // 2
+    h_pad2 = h_pad - h_pad1
+
+    w_pad  = base - w % base
+    w_pad1 = w_pad // 2
+    w_pad2 = w_pad - w_pad1
+
+    x_out = np.lib.pad(x, ((h_pad1, h_pad2), (w_pad1, w_pad2), (0,0)), 'reflect', reflect_type='odd')
+    return x_out, h_pad1, h_pad2, w_pad1, w_pad2
 
 #--------------------------------------------------------------------------------
 
