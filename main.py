@@ -14,7 +14,7 @@ from config import *
 ###====================== HYPER-PARAMETERS ===========================###
 batch_size = config.train.batch_size
 patch_size = config.train.in_patch_size
-ni = int(np.sqrt(config.train.batch_size))
+ni = 2 # int(np.sqrt(config.train.batch_size))
 
 
 def compute_charbonnier_loss(tensor1, tensor2, is_mean=True):
@@ -172,12 +172,12 @@ def train(binary=False):
     ###========================== DEFINE TRAIN OPS ==========================###
     mse_loss2 = compute_charbonnier_loss(net_image2.outputs, t_target_image, is_mean=True)
     mse_loss1 = compute_charbonnier_loss(net_image1.outputs, t_target_image_down, is_mean=True)
-    mse_loss = 2.5 * mse_loss1 + 2.5 * mse_loss2 # * 4
+    mse_loss = 1.75 * mse_loss1 + 3.25 * mse_loss2 # * 4
     # mse_loss = mse_loss2 * 4
     
     mse_loss2_test = compute_charbonnier_loss(net_image2_test.outputs, t_target_image, is_mean=True)
     mse_loss1_test = compute_charbonnier_loss(net_image1_test.outputs, t_target_image_down, is_mean=True)
-    mse_loss_test = 2.5 * mse_loss1_test + 2.5 * mse_loss2_test # * 4
+    mse_loss_test = 1.75 * mse_loss1_test + 3.25 * mse_loss2_test # * 4
     # mse_loss_test = mse_loss2_test * 4
     
     g_vars = get_variables_with_name_in_binary_training('LapSRN', True, True)
@@ -220,10 +220,10 @@ def train(binary=False):
     sample_input_imgs, _, sample_output_imgs = prepare_nn_data(
         valid_hr_list, valid_lrx2_list, valid_lr_list, sample_ind)
     tl.vis.save_images(
-        truncate_imgs_fn(sample_input_imgs), [ni, ni],
+        truncate_imgs_fn(sample_input_imgs), [ni, ni + 1],
         save_dir + '/train_sample_input.png')
     tl.vis.save_images(
-        truncate_imgs_fn(sample_output_imgs), [ni, ni],
+        truncate_imgs_fn(sample_output_imgs), [ni, ni + 1],
         save_dir + '/train_sample_output.png')
 
     ###========================== Training ====================###
@@ -309,10 +309,10 @@ def train(binary=False):
                     t_image: sample_input_imgs
                 })  #; print('gen sub-image:', out.shape, out.min(), out.max())
             tl.vis.save_images(
-                truncate_imgs_fn(sample_out), [ni, ni],
+                truncate_imgs_fn(sample_out), [ni, ni + 1],
                 save_dir + '/train_predict_%d.png' % epoch)
             tl.vis.save_images(
-                truncate_imgs_fn(np.abs(sample_grad_out)), [ni, ni],
+                truncate_imgs_fn(np.abs(sample_grad_out)), [ni, ni + 1],
                 save_dir + '/train_grad_predict_%d.png' % epoch)
 
 

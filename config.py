@@ -26,14 +26,14 @@ config.train.lrx2_folder_path = data_path + 'DIV2K_train_LR_bicubic/X2/'
 config.train.lrx4_folder_path = data_path + 'DIV2K_train_LR_bicubic/X4/'
 config.train.lrx8_folder_path = data_path + 'DIV2K_train_LR_bicubic/X8/'
 
-config.train.batch_size = 4  # use large number if you have enough memory
-config.train.in_patch_size = 64
+config.train.batch_size = 6  # use large number if you have enough memory
+config.train.in_patch_size = 96
 config.train.out_patch_size = config.model.scale * config.train.in_patch_size
 config.train.batch_size_each_folder = 30
 config.train.log_write = False
 
 ## Adam
-config.train.lr_init = 3e-5 # 7e-5 
+config.train.lr_init = 5e-5 # 7e-5 
 config.train.lr_decay = 0.90
 config.train.decay_iter = 20
 config.train.beta1 = 0.90
