@@ -172,12 +172,12 @@ def train(binary=False):
     ###========================== DEFINE TRAIN OPS ==========================###
     mse_loss2 = compute_charbonnier_loss(net_image2.outputs, t_target_image, is_mean=True)
     mse_loss1 = compute_charbonnier_loss(net_image1.outputs, t_target_image_down, is_mean=True)
-    mse_loss = 2.5 * mse_loss1 + 2.5 * mse_loss2 # * 4
+    mse_loss = mse_loss1 + mse_loss2 * 4
     # mse_loss = mse_loss2 * 4
     
     mse_loss2_test = compute_charbonnier_loss(net_image2_test.outputs, t_target_image, is_mean=True)
     mse_loss1_test = compute_charbonnier_loss(net_image1_test.outputs, t_target_image_down, is_mean=True)
-    mse_loss_test = 2.5 * mse_loss1_test + 2.5 * mse_loss2_test # * 4
+    mse_loss_test = mse_loss1_test + mse_loss2_test * 4
     # mse_loss_test = mse_loss2_test * 4
     
     g_vars = get_variables_with_name_in_binary_training('LapSRN', True, True)
