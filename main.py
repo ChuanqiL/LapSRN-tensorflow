@@ -352,8 +352,7 @@ def test(read_directory, binary=False, zoom=4):
             test_lr_img, ((config.TEST.padnumber, config.TEST.padnumber),
                           (config.TEST.padnumber, config.TEST.padnumber), (0,
                                                                            0)),
-            config.TEST.mode,
-            reflect_type=config.TEST.type)
+            config.TEST.mode) #, reflect_type=config.TEST.type)
 
         ###========================== DEFINE MODEL ============================###
         test_lr_img_input = (

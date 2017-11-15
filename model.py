@@ -109,9 +109,9 @@ class BinaryConv2dLayer(Layer):
                     # alpha = tf.reduce_mean(tf.abs(W))
                     tf.assign(W_b, alpha * tf.sign(W))
                     self.outputs = act(
-                        tf.nn.conv2d(
+                        alpha * tf.nn.conv2d(
                             self.inputs,
-                            alpha * W_b,
+                            W_b,
                             strides=strides,
                             padding=padding,
                             use_cudnn_on_gpu=use_cudnn_on_gpu,
@@ -121,9 +121,9 @@ class BinaryConv2dLayer(Layer):
                     W_b = tf.get_variable(name='W_conv2d_binary', shape=shape)
                     alpha = tf.get_variable(name='alpha', shape=[1, 1, 1, shape[3]])
                     self.outputs = act(
-                        tf.nn.conv2d(
+                        alpha * tf.nn.conv2d(
                             self.inputs,
-                            alpha * W_b,
+                            W_b,
                             strides=strides,
                             padding=padding,
                             use_cudnn_on_gpu=use_cudnn_on_gpu,
